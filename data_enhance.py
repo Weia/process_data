@@ -3,29 +3,27 @@ import numpy as np
 
 
 
-def adjust_bright(img):
-    #0,0.5
-    print(1)
-    return tf.image.random_brightness(img,32./255.)
-
-def adjust_const(img):
-    #0.5-2
-    # return tf.image.adjust_contrast(img,2)
-    print(2)
-    return tf.image.random_contrast(img,0.5,1.5)
-
-def adjust_sat(img):
-    #0-2
-    print(3)
-    return tf.image.random_saturation(img,0.5,1.5)
-
-
+# def adjust_bright(img):
+#     #0,0.5
+#     print(1)
+#     return tf.image.random_brightness(img,32./255.)
+#
+# def adjust_const(img):
+#     #0.5-2
+#     # return tf.image.adjust_contrast(img,2)
+#     print(2)
+#     return tf.image.random_contrast(img,0.5,1.5)
+#
+# def adjust_sat(img):
+#     #0-2
+#     print(3)
+#     return tf.image.random_saturation(img,0.5,1.5)
 
 
-def gen_full_boundingBox(label,width,height):
+def _gen_full_boundingBox(label,width,height):
 
     re_width=tf.cast(width,tf.int32)
-    re_height=tf.cast(height    ,tf.int32)
+    re_height=tf.cast(height,tf.int32)
     re_label=tf.reshape(label,(-1,2))
     l_min=tf.reduce_min(re_label,axis=0)
     l_max=tf.reduce_max(re_label,axis=0)
@@ -55,7 +53,7 @@ def gen_full_boundingBox(label,width,height):
 
     return (top[0],left[0],new_height[0],new_width[0])
 
-def relabel_ac_bbox(label,bbox):
+def _relabel_ac_bbox(label,bbox):
     re_label=tf.reshape(label,(-1,2))
 
 
@@ -70,13 +68,12 @@ def relabel_ac_bbox(label,bbox):
 
 
 def random_crop_img(img,label,width,height):
-    bbox=gen_full_boundingBox(label,width,height)
+    bbox=_gen_full_boundingBox(label,width,height)
     crop_img=tf.image.crop_to_bounding_box(img,bbox[0],bbox[1],bbox[2],bbox[3])
-
-    re_label=relabel_ac_bbox(label,bbox)
+    re_label=_relabel_ac_bbox(label,bbox)
     return crop_img,re_label,bbox[2],bbox[3]
 
-    pass
+
 
 def adjust_image(color_ordering,image,fast=False):
     if fast:
@@ -105,3 +102,17 @@ def adjust_image(color_ordering,image,fast=False):
         image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
         image = tf.image.random_brightness(image, max_delta=32. / 255.)
     return image
+
+
+def do_enhance(image,label,width,height):
+    """
+
+    :param image:
+    :param label:
+    :param width:
+    :param height:
+    :return: label shape is (nPoints,2)
+    """
+    crop_image,re_label,re_height,re_width=random_crop_img(image,label,width,height)
+    adj_image=adjust_image(1,crop_image)
+    return adj_image,re_label,re_width,re_height

@@ -2,8 +2,8 @@ import tensorflow as tf
 import data_enhance
 import numpy as np
 """加载一个batchsize的image"""
-WIDTH=256
-HEIGHT=256
+WIDTH=512
+HEIGHT=512
 HM_HEIGHT=64
 HM_WIDTH=64
 def _read_single_sample(samples_dir,nPoints):
@@ -28,6 +28,12 @@ def _read_single_sample(samples_dir,nPoints):
     return image,label
 
 
+def resize_img_label(image,label,width,height):
+    new_img=tf.image.resize_images(image,[256,256],method=1)
+    x=tf.reshape(label[:,0]*256./tf.cast(width,tf.float32),(-1,1))
+    y=tf.reshape(label[:,1]*256./tf.cast(height,tf.float32),(-1,1))
+    re_label=tf.concat([x,y],axis=1)
+    return new_img,re_label
 
 def batch_samples(batch_size,filename,nPoints,shuffle=False):
     """
@@ -36,14 +42,16 @@ def batch_samples(batch_size,filename,nPoints,shuffle=False):
 
     image,label=_read_single_sample(filename,nPoints)
     # print(image.shape)
-    label=tf.reshape(label,[-1,2])
-    new_image=data_enhance.adjust_bright(image)
+    # label=tf.reshape(label,[-1,2])
+
+    image,label,re_width,re_height=data_enhance.do_enhance(image,label,512,512)
+    image,label=resize_img_label(image,label,re_width,re_height)
     #label = gene_hm.resize_label(label)#将label放缩到64*64
     #label=gene_hm.tf_generate_hm(HM_HEIGHT, HM_WIDTH ,label, 64)
     if shuffle:
-        image_batch, label_batch = tf.train.shuffle_batch([new_image, label], batch_size, min_after_dequeue=10,num_threads=2,capacity=2000)
+        image_batch, label_batch = tf.train.shuffle_batch([image, label], batch_size, min_after_dequeue=10,num_threads=2,capacity=2000)
     else:
-        image_batch,label_batch=tf.train.batch([new_image,label],batch_size, num_threads=2)
+        image_batch,label_batch=tf.train.batch([image,label],batch_size, num_threads=2)
 
     return image_batch,label_batch
 
@@ -61,7 +69,7 @@ with tf.Session() as sess: #开始一个会话
     init_op = tf.global_variables_initializer()
 
 
-    image_batch,label_batch=batch_samples(2,r'tfrecords_result/front_enhance.tfrecords',16,False)
+    image_batch,label_batch=batch_samples(2,r'/media/weic/新加卷/数据集/数据集/学生照片/tfrecords/front/final_valid_512.tfrecords',16,False)
 
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(coord=coord, sess=sess)

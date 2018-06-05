@@ -3,8 +3,8 @@ from PIL import Image
 import os
 import matplotlib.pyplot as plt
 
-WIDTH=256
-HEIGHT=256
+WIDTH=512
+HEIGHT=512
 
 def bound_coord(label):
     """返回坐标中的最大值最小值"""
